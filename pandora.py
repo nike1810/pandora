@@ -6,6 +6,10 @@ import BeautifulSoup as bs
 import re
 import os
 import urllib
+import urllib2
+import json
+from crypto import Crypto
+import time
 
 PATT = re.compile(">(.*?)<")
 
@@ -16,7 +20,15 @@ ACCESS_TOKEN = "8785c8a25541565bcb76555f76eaa8159442e54ec4c2aab64610626d635104e3
 COUNT_OF_SONGS = 100
 COUNT_OF_DUPLICATES = 3
 DOWNLOAD_FOLDER_NAME = "audio"
-LOGIN = "demidov.1810"
+PARTNER_LOGIN = 'android'
+PARTNER_PASSWORD = 'AC7IBG09A3DTSYM4R41UJWL07VLN8JI7'
+IN_KEY = 'R=U!LH$O2B#'
+OUT_KEY = '6#26FRL$ZWD'
+DEVICE = 'android-generic'
+RPC_HOST = "tuner.pandora.com"
+ONE_HOST = "internal-tuner.pandora.com"
+RPC_PATH = "/services/json/?"
+HTTP_TIMEOUT = 30
 
 def get_names(n = COUNT_OF_SONGS):
     l = 1000
@@ -116,4 +128,74 @@ def download(folder=DOWNLOAD_FOLDER_NAME):
 
             
 
-download()
+# download()
+
+
+# ------------------------------------------------------------------------------------------------------------------
+
+def jsonGetUrl(Url, PostData = None, Opener=None):
+    req = urllib2.Request(Url, PostData, {'Content-Type': 'application/json'})
+    if Opener:
+        u = Opener.open(req, timeout=HTTP_TIMEOUT)
+    else:
+        u = urllib2.urlopen(req)
+    resp = u.read()
+    u.close()
+    return resp
+
+class Settings:
+    def __init__(self):
+        self.baseUrl = RPC_HOST + RPC_PATH
+
+class PartnerInfo:
+    def __init__(self):
+        self.In = ''
+        self.out = ''
+        self.authToken = ''
+        self.device = DEVICE
+        self.user = PARTNER_LOGIN
+        self.password = PARTNER_PASSWORD
+        self.id = 0
+        self.In = Crypto(IN_KEY)
+        self.out = Crypto(OUT_KEY)
+
+class Pandora:
+    def __init__(self):
+        self.partner = PartnerInfo()
+        self.settings = Settings()
+        self.opener = urllib2.build_opener()
+
+    def partnerLogin(self):
+        postData = json.dumps({"username": self.partner.user,
+                                "password": self.partner.password,
+                                "deviceModel": self.partner.device,
+                                "version": "5",
+                                "includeUrls": True})
+
+        URL = 'https://' + self.settings.baseUrl + 'method=auth.partnerLogin'
+        response = jsonGetUrl(URL, postData, self.opener)
+        responseJson = json.loads(response)
+
+        if responseJson['stat'] == "ok":
+            print 'PartnerAuthentificate succes.'
+        else:
+            print 'PartnerAuthentificate fail.'
+            return False
+
+        result = responseJson["result"]
+        cryptedTimestamp = result["syncTime"]
+        decryptedTimestamp = self.partner.In.decrypt(cryptedTimestamp)
+        if decryptedTimestamp and len(decryptedTimestamp) > 4:
+            timestamp = long(decryptedTimestamp[4:-2])
+            self.timeOffset = time.time() - timestamp
+
+        self.partner.authToken = result["partnerAuthToken"]
+        self.partner.id = int(result["partnerId"])
+
+        print self.partner.authToken
+        # print URL
+        # print response
+
+
+pand = Pandora()
+pand.partnerLogin()
