@@ -22,6 +22,8 @@ COUNT_OF_DUPLICATES = 3
 DOWNLOAD_FOLDER_NAME = "audio"
 PARTNER_LOGIN = 'android'
 PARTNER_PASSWORD = 'AC7IBG09A3DTSYM4R41UJWL07VLN8JI7'
+USER_NAME = 'demidov.1810@gmail.com'
+USER_PASSWORD = 'demon1810'
 IN_KEY = 'R=U!LH$O2B#'
 OUT_KEY = '6#26FRL$ZWD'
 DEVICE = 'android-generic'
@@ -147,13 +149,21 @@ class Settings:
     def __init__(self):
         self.baseUrl = RPC_HOST + RPC_PATH
 
+class UserInfo:
+    def __init__(self):
+        self.username = USER_NAME
+        self.password = USER_PASSWORD
+        self.listenerId = ''
+        self.authToken = ''
+
+
 class PartnerInfo:
     def __init__(self):
         self.In = ''
         self.out = ''
         self.authToken = ''
         self.device = DEVICE
-        self.user = PARTNER_LOGIN
+        self.login = PARTNER_LOGIN
         self.password = PARTNER_PASSWORD
         self.id = 0
         self.In = Crypto(IN_KEY)
@@ -162,11 +172,12 @@ class PartnerInfo:
 class Pandora:
     def __init__(self):
         self.partner = PartnerInfo()
+        self.user = UserInfo()
         self.settings = Settings()
         self.opener = urllib2.build_opener()
 
     def partnerLogin(self):
-        postData = json.dumps({"username": self.partner.user,
+        postData = json.dumps({"username": self.partner.login,
                                 "password": self.partner.password,
                                 "deviceModel": self.partner.device,
                                 "version": "5",
@@ -193,9 +204,69 @@ class Pandora:
         self.partner.id = int(result["partnerId"])
 
         print self.partner.authToken
-        # print URL
-        # print response
+        return True
+
+    def userLogin(self):
+        timestamp = time.time() - self.timeOffset
+        postData = json.dumps({"loginType": "user",
+                               "username": self.user.username,
+                               "password": self.user.password,
+                               "partnerAuthToken": self.partner.authToken,
+                               "syncTime": timestamp})
+        encPostData = self.partner.out.encrypt(postData)
+        urlencAuthToken = urllib.quote_plus(self.partner.authToken)
+        Url = 'https://' + self.settings.baseUrl + "method=auth.userLogin&auth_token=%s&partner_id=%i" % (urlencAuthToken, self.partner.id)
+        response = jsonGetUrl(Url, encPostData, self.opener)
+        responseJson = json.loads(response)
+
+        if responseJson['stat'] == "ok":
+            print 'UserAuthentificate succes.'
+        else:
+            print 'UserAuthentificate fail.'
+            return False
+
+        result = responseJson["result"]
+        self.user.listenerId = int(result["userId"])
+        self.user.authToken = result["userAuthToken"]
+        return True
+
+    def getLikedTracks(self):
+        timestamp = time.time() - self.timeOffset
+        postData = json.dumps({"userAuthToken" : self.user.authToken,
+                               "syncTime" : timestamp})
+        encPostData = self.partner.out.encrypt(postData)
+        method = "user.getBookmarks"
+        url = self.constructUrl(method, secure=False)
+        response = jsonGetUrl(url, encPostData, self.opener)
+        responseJson = json.loads(response)
+        print responseJson
+
+        if responseJson['stat'] == "ok":
+            print 'Get liked tracks.'
+        else:
+            print 'Could not get liked tracks.'
+            return False
+
+        result = responseJson["result"]
+        songs = result["songs"]
+        for song in songs:
+            print song["songName"]
+
+    def constructUrl(self, method, secure=False):
+        urlencAuthToken = urllib.quote_plus(self.user.authToken)
+        if secure:
+            prefix = 'https://'
+        else:
+            prefix = 'http://'
+
+        Url = prefix + self.settings.baseUrl + "method=%s&auth_token=%s&partner_id=%i&user_id=%s" % (method,
+                                                                                           urlencAuthToken,
+                                                                                           self.partner.id,
+                                                                                           self.user.listenerId)
+        return Url
 
 
 pand = Pandora()
 pand.partnerLogin()
+pand.userLogin()
+pand.getLikedTracks()
