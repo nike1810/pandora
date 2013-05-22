@@ -15,11 +15,13 @@ PATT = re.compile(">(.*?)<")
 
 #https://oauth.vk.com/authorize?client_id=3608669&scope=audio&redirect_uri=https://oauth.vk.com/blank&display=wap&response_type=token
 
-COOKIE = 'at=ws6AubkvPAJPa7/yBBp4r7eAaoBzxe5LzOYFma5p7FzY9h+RXT2SvmhU8WZ6DY6R6pBRF9pvcMFm+aO3CSzeYvw%3D%3D'
+COOKIE = 'at=wR3JtOkD5uML+hpRZts7J9nGAfao51kP9+mWXzdt95pb2iuYxCrLqMlU3pJwmIYf5POmKDqWEOoNNtwtzqvlH7A%3D%3D'
+CONFIG_URL = 'https://gist.github.com/ustasb/596f1ee96d03463fde77/raw/pandata_config.json'
 ACCESS_TOKEN = "8785c8a25541565bcb76555f76eaa8159442e54ec4c2aab64610626d635104e39acc82143853a8445816e"
 COUNT_OF_SONGS = 100
 COUNT_OF_DUPLICATES = 3
 DOWNLOAD_FOLDER_NAME = "audio"
+LOGIN = "demidov.1810"
 PARTNER_LOGIN = 'android'
 PARTNER_PASSWORD = 'AC7IBG09A3DTSYM4R41UJWL07VLN8JI7'
 USER_NAME = 'demidov.1810@gmail.com'
@@ -37,12 +39,16 @@ def get_names(n = COUNT_OF_SONGS):
     i = 1
     out = []
     count = 1
+
+    cookies = get_cookies()
+
     while l>100:
         if not n is None:
             if i >= n:
                 break
+
         resp = r.get("http://www.pandora.com/content/tracklikes?likeStartIndex=0&thumbStartIndex="+str(count)+"&webname="+LOGIN,
-             headers = {"Cookie": COOKIE})
+                             headers = {"Cookie": cookies})
         soup = bs.BeautifulSoup(resp.text)
         #print soup
         for x in soup.findAll(attrs={"class":"infobox-body"}):
@@ -61,6 +67,12 @@ def get_names(n = COUNT_OF_SONGS):
     print len(out)
     print out
     return out
+
+def get_cookies():
+    response = r.get(CONFIG_URL)
+    cookies = json.loads(response.text)
+
+    return cookies["cookie"]
 
 
 def audio_search(string):
@@ -112,6 +124,7 @@ def download(folder=DOWNLOAD_FOLDER_NAME):
             continue
 
         sortedObjects = sortObjects(unsortedObject)
+        print sortedObjects
 
 
         for obj in sortedObjects:
@@ -130,7 +143,7 @@ def download(folder=DOWNLOAD_FOLDER_NAME):
 
             
 
-# download()
+download()
 
 
 # ------------------------------------------------------------------------------------------------------------------
@@ -266,7 +279,7 @@ class Pandora:
         return Url
 
 
-pand = Pandora()
-pand.partnerLogin()
-pand.userLogin()
-pand.getLikedTracks()
+# pand = Pandora()
+# pand.partnerLogin()
+# pand.userLogin()
+# pand.getLikedTracks()
