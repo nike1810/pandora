@@ -13,6 +13,7 @@ import time
 
 TITLE_PATT = re.compile(">(.*?)<")
 SAMPLE_PATT = re.compile("http\S*3")
+COMPARE_PATT = re.compile("\/[^\/]*.mp3")
 
 #https://oauth.vk.com/authorize?client_id=3665077&scope=audio&redirect_uri=https://oauth.vk.com/blank&display=wap&response_type=token
 
@@ -195,7 +196,8 @@ class Pandora:
         # nameCounter = 1
         # sampleCounter = 1
         artistNames = []
-        sampleSongs = {}
+        sampleSongs = []
+        compareSampleSongs = []
         count = 1
 
         while l>100:
@@ -215,10 +217,10 @@ class Pandora:
 
             for sampleStr in soup.findAll(attrs={"class" : "int-icon-1 i-play-1 sample"}):
                 sample = re.findall(SAMPLE_PATT, str(sampleStr))
-                comparePatt = re.compile("\/[^\/]*.mp3")
-                compare = re.findall(comparePatt, str(sample))
-                if compare not in sampleSongs.keys():
-                    sampleSongs[compare[0]] = sample
+                compare = re.findall(COMPARE_PATT, str(sample))
+                if compare not in compareSampleSongs:
+                    compareSampleSongs.append(compare)
+                    sampleSongs.append(sample)
                     # sampleSongs.pop(compare, sample)
                     # sampleCounter+=1
 
