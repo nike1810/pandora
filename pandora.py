@@ -19,7 +19,7 @@ COMPARE_PATT = re.compile("\/[^\/]*.mp3")
 
 COOKIE = 'at=wR3JtOkD5uML+hpRZts7J9nGAfao51kP9+mWXzdt95pb2iuYxCrLqMlU3pJwmIYf5POmKDqWEOoNNtwtzqvlH7A%3D%3D'
 CONFIG_URL = 'https://gist.github.com/ustasb/596f1ee96d03463fde77/raw/pandata_config.json'
-ACCESS_TOKEN = "c0a3e51fe5e7755b11b85f95db0c09aafdde75d93842022842681a6f9e4daf0954f4efd1f79199fbe413b"
+ACCESS_TOKEN = "f089ff91fdec3c8b01ba642cbf918fb8cbb705fccb0c15799c629a31d149f7f45866a32d63d792b78d4d5"
 COUNT_OF_SONGS = 1
 COUNT_OF_DUPLICATES = 3
 DOWNLOAD_FOLDER_NAME = "audio"
@@ -181,6 +181,7 @@ class Song:
         self.duration = 0
         self.bitrate = 0
         self.url =  ""
+        self.size = 0
 
 class Pandora:
     def __init__(self):
@@ -193,11 +194,10 @@ class Pandora:
 
     def getLikedTracks(self, countOfSongs = 100):
         l = 1000
-        # nameCounter = 1
-        # sampleCounter = 1
         artistNames = []
         sampleSongs = []
         compareSampleSongs = []
+        namesAndSamples = []
         count = 1
 
         while l>100:
@@ -221,8 +221,7 @@ class Pandora:
                 if compare not in compareSampleSongs:
                     compareSampleSongs.append(compare)
                     sampleSongs.append(sample)
-                    # sampleSongs.pop(compare, sample)
-                    # sampleCounter+=1
+
 
 
             if not "infobox-body" in resp.text and not "no_more tracklike" in resp.text:
@@ -234,8 +233,23 @@ class Pandora:
 
         if(len(artistNames) != len(sampleSongs)):
             print "Mismatch count of songs: %s & artist: %s" % (len(sampleSongs), len(artistNames))
+            exit()
+
+        bufCounter = 0
+        for artist in artistNames:
+            namesAndSamples.append([artist, sampleSongs[bufCounter]])
+            bufCounter+=1
+
+
+        # print "Count of songs: %s & artist: %s" % (len(sampleSongs), len(artistNames))
+        #
+        # [ namesAndSamples.append( [artist, sample] ) for artist in artistNames for sample in sampleSongs]
+
+        # print "Count of namesAndSamples: %s" % (len(namesAndSamples))
+
         # print len(out)
-        print artistNames
+        print namesAndSamples
+        # print artistNames
         return artistNames
 
 class VKcom:
@@ -247,6 +261,7 @@ class VKcom:
 
     def audioSearch(self, songName):
         resp = r.get("https://api.vk.com/method/audio.search?q=%(q)s&sort=2&count=30&access_token=%(ACCESS_TOKEN)s"%{"q":songName, "ACCESS_TOKEN":self.accessToken})
+        # print resp.json()
         return resp.json()
 
 class Downloader:
@@ -264,13 +279,13 @@ class Downloader:
         for song in self.pandora.getLikedTracks():
             if len(song) == 1:
                 song.append("Unknown")
-            try:
-                originalSongName = song[0]+" "+song[1]
-                objects = self.vk.audioSearch(originalSongName)["response"]
-                songs = self.getSongsInfo(objects)
+            # try:
+            originalSongName = song[0]+" "+song[1]
+            objects = self.vk.audioSearch(originalSongName)["response"]
+            songs = self.getSongsInfo(objects)
 
-            except:
-                continue
+            # except:
+            #     continue
 
             if self.useFilterBitrate :
                 songs = self.filterSongs(songs)
@@ -287,7 +302,16 @@ class Downloader:
                     if not os.path.exists(songPath):
                         os.mkdir(songPath)
 
-                    urllib.urlretrieve(song.url, os.path.join(songPath,  song.artist + "-"+ song.name +".mp3"))
+                    filename = os.path.join(songPath,  song.artist + "-"+ song.name +".mp3")
+                    if os.path.exists(filename):
+                        # print "song local size: %d" % song.size
+                        # print "song server size: %d" % os.path.getsize(filename)
+                        if os.path.getsize(filename) == song.size:
+                            print "File was already downloaded: ", song.artist + "-"+ song.name
+                            continue
+
+                    urllib.urlretrieve(song.url, filename)
+                    # urllib.urlretrieve(song., os.path.join(songPath,  song.artist + "-"+ song.name +".mp3"))
                 except:
                     print 'Download fault'
                     continue
@@ -296,6 +320,8 @@ class Downloader:
     def getSongsInfo(self, objects):
         i = 1
         songs = []
+        songsNames = []
+        # songsDict = {}
 
         while not objects[i] is None :
             if i > self.countItemsPerSong:
@@ -307,14 +333,28 @@ class Downloader:
             song.name = objects[i]["title"]
             song.url = objects[i]["url"]
             head = r.head(song.url)
-            size = head.headers["content-length"]
-            song.duration = objects[i]["duration"]
-            song.bitrate = (float(size) * 8 / float(song.duration)) / 1024
+            song.size = float( head.headers["content-length"] )
+            song.duration = float( objects[i]["duration"] )
+            song.bitrate = (song.size * 8 / song.duration) / 1024
 
+            songName = song.artist + song.name
+
+            #Check does song name already exist
+            if songName in songsNames:
+                self.recursiveGetName(song, songsNames, 0)
+
+            songsNames.append(song.artist + song.name)
             songs.append(song)
             i+=1
 
         return songs
+
+    def recursiveGetName(self, song, songsNames, number):
+        songName = song.artist + song.name + "(" + str(number) + ")"
+        if songName in songsNames:
+            self.recursiveGetName(song, songsNames, number + 1)
+        else:
+            song.name = song.name + "(" + str(number) + ")"
 
     def filterSongs(self, songs = [Song(),]):
         filteredSongs = []
