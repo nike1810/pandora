@@ -19,7 +19,7 @@ COMPARE_PATT = re.compile("\/[^\/]*.mp3")
 
 COOKIE = 'at=wR3JtOkD5uML+hpRZts7J9nGAfao51kP9+mWXzdt95pb2iuYxCrLqMlU3pJwmIYf5POmKDqWEOoNNtwtzqvlH7A%3D%3D'
 CONFIG_URL = 'https://gist.github.com/ustasb/596f1ee96d03463fde77/raw/pandata_config.json'
-ACCESS_TOKEN = "c0a3e51fe5e7755b11b85f95db0c09aafdde75d93842022842681a6f9e4daf0954f4efd1f79199fbe413b"
+ACCESS_TOKEN = "943e32d6490dc5de8b410c8bb6d24343defc1d250fa1fc713db6a1f45e57c5fa54ff7188f60c3e4a21889"
 COUNT_OF_SONGS = 1
 COUNT_OF_DUPLICATES = 3
 DOWNLOAD_FOLDER_NAME = "audio"
@@ -212,7 +212,9 @@ class Pandora:
             for x in soup.findAll(attrs={"class":"infobox-body"}):
                 patt = [TITLE_PATT.findall(str(x.a))[0], TITLE_PATT.findall(str(x.p.a))[0]]
                 if patt not in artistNames:
-                    artistNames.append([TITLE_PATT.findall(str(x.a))[0], TITLE_PATT.findall(str(x.p.a))[0]])
+                    artist = [TITLE_PATT.findall(str(x.a))[0], TITLE_PATT.findall(str(x.p.a))[0]]
+                    artistNames.append(artist)
+                    print artist
                     # nameCounter += 1
 
             for sampleStr in soup.findAll(attrs={"class" : "int-icon-1 i-play-1 sample"}):
@@ -221,6 +223,7 @@ class Pandora:
                 if compare not in compareSampleSongs:
                     compareSampleSongs.append(compare)
                     sampleSongs.append(sample)
+                    print sample
                     # sampleSongs.pop(compare, sample)
                     # sampleCounter+=1
 
@@ -235,7 +238,7 @@ class Pandora:
         if(len(artistNames) != len(sampleSongs)):
             print "Mismatch count of songs: %s & artist: %s" % (len(sampleSongs), len(artistNames))
         # print len(out)
-        print artistNames
+        # print artistNames
         return artistNames
 
 class VKcom:
