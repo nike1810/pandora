@@ -22,15 +22,22 @@ ApplicationWindow {
             border.width: 1
             border.color: "#c0c0c0"
 
+
             Grid {
                 id: pandoraGrid
                 columns: 2
                 rows: 2
                 spacing: 10
-                anchors.centerIn: parent
+                anchors {
+                    horizontalCenter: parent.horizontalCenter
+                    top: parent.top
 
-                anchors.leftMargin: 50
-                anchors.rightMargin: 50
+                    topMargin: parent.height/5
+                    leftMargin: parent.width/7
+                    rightMargin: parent.width/7
+                }
+
+
 
                 horizontalItemAlignment: Grid.AlignHCenter
                 verticalItemAlignment: Grid.AlignVCenter
@@ -56,6 +63,21 @@ ApplicationWindow {
                 }
             }
 
+            Button {
+                id: pandoraGetButton
+                text: qsTr("Get")
+
+                height: 25
+                width: 80
+
+                anchors {
+                    horizontalCenter: parent.horizontalCenter
+                    bottom: parent.bottom
+                    bottomMargin: parent.height / 20
+                }
+            }
+
+
         }
 
         Rectangle {
@@ -72,10 +94,15 @@ ApplicationWindow {
                 columns: 2
                 rows: 2
                 spacing: 10
-                anchors.centerIn: parent
 
-                anchors.leftMargin: 50
-                anchors.rightMargin: 50
+                anchors {
+                    horizontalCenter: parent.horizontalCenter
+                    top: parent.top
+
+                    topMargin: parent.height/5
+                    leftMargin: parent.width/7
+                    rightMargin: parent.width/7
+                }
 
                 horizontalItemAlignment: Grid.AlignHCenter
                 verticalItemAlignment: Grid.AlignVCenter
@@ -98,6 +125,20 @@ ApplicationWindow {
                 TextField {
                     width: vkSettings.width / 2 - 2 * parent.spacing - vkGrid.anchors.rightMargin
 
+                }
+            }
+
+            Button {
+                id: vkConnectButton
+                text: qsTr("Connect")
+
+                height: 25
+                width: 80
+
+                anchors {
+                    horizontalCenter: parent.horizontalCenter
+                    bottom: parent.bottom
+                    bottomMargin: parent.height / 20
                 }
             }
 
